@@ -17,17 +17,22 @@ library(RColorBrewer)
 library(scales)
 
 readDtList <- function(){
-    fnode = './node.tsv'
-    fedge = './edge.tsv'
-    fmed  = './median.tsv'
+    fnode  = './node.tsv'
+    fedge  = './edge.tsv'
+    fmed   = './median.tsv'
+    fcolor = './color.tsv'
 
-    nodedt = fread(fnode, header=TRUE, sep="\t")
-    edgedt = fread(fedge, header=TRUE, sep="\t")
-    meddt  = fread(fmed,  header=TRUE, sep="\t")
+    nodedt  = fread(fnode,  header=TRUE, sep="\t")
+    edgedt  = fread(fedge,  header=TRUE, sep="\t")
+    meddt   = fread(fmed,   header=TRUE, sep="\t")
+    colordt = fread(fcolor, header=TRUE, sep="\t")
 
     dtlist = list( med   = meddt, 
                    node  = nodedt,
-                   edge  = edgedt )
+                   edge  = edgedt,
+                   color = colordt
+                 )
+    print(dtlist$color)
 
     return(dtlist)
 }
@@ -99,15 +104,17 @@ server <- function(input, output, session) {
     output$ntw_pos = renderVisNetwork(plotNtw(pos_nodedt, edgedt, input))
     output$ntw_neg = renderVisNetwork(plotNtw(neg_nodedt, edgedt, input))
 
-    output$legend_color = renderTable({
-        data.table( 
-            color = c( '<font color="#FB6A4A"><strong>red</strong></font>',
-                       '<font color="#6BAED6"><strong>blue</strong></font>',
-                       '<font color="#D9D9D9"><strong>grey</strong></font>' ),
-            `correlated with overall survival (p < 0.05)` = c(
-                'both pathway level and geomic data',
-                'only pathway level',
-                'none' ) )
+    output$legend_color = renderTable({dtlist$color
+     #  data.table( 
+     #      color = c( '<font color="#FB6A4A"><strong>red</strong></font>',
+     #                 '<font color="#6BAED6"><strong>blue</strong></font>',
+     #                 '<font color="#9E9AC8"><strong>purple</strong></font>',
+     #                 '<font color="#D9D9D9"><strong>grey</strong></font>' ),
+     #      `correlated with overall survival (p < 0.05)` = c(
+     #          'both pathway level and genomic data',
+     #          'only pathway level',
+     #          'only genomic data',
+     #          'none' ) )
     }, align='c', sanitize.text.function = function(x) x)
 
     output$legend_shape = renderTable({

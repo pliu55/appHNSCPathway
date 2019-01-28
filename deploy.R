@@ -18,9 +18,11 @@ main <- function() {
     prm = list(
         set = 'training',
 
-        greys = brewer.pal(6, 'Greys'),
-        red   = brewer.pal(6, 'Reds' )[4],
-        blue  = brewer.pal(6, 'Blues')[4],
+        greys  = brewer.pal(6, 'Greys'),
+        red    = brewer.pal(6, 'Reds' )[4],
+        blue   = brewer.pal(6, 'Blues')[4],
+      # purple = brewer.pal(6, 'Purples')[3],
+        orange = brewer.pal(6, 'Oranges')[3],
 
         fnode = paste0(ntwdir, '03_pathway/node.tsv'),
         fedge = paste0(ntwdir, '03_pathway/edge.tsv'),
@@ -29,9 +31,10 @@ main <- function() {
         fmed  = paste0(ntwdir, '18p_cmpHpvPrtb/median_199.tsv'),
         fpval = paste0(ntwdir, '19_IplOmicP/logrank_p.tsv'),
 
-        fout_med  = './median.tsv',
-        fout_node = './node.tsv',
-        fout_edge = './edge.tsv'
+        fout_med   = './median.tsv',
+        fout_node  = './node.tsv',
+        fout_edge  = './edge.tsv',
+        fout_color = './color.tsv'
     )
 
     nodedt = fread(prm$fnode, header=T)
@@ -47,19 +50,42 @@ main <- function() {
 
     out_edgedt = selDefEdge(edgedt, mrgmrgdt, prm)
     out_nodedt = selDefNode(nodedt, mrgmrgdt, prm)
+    colordt = defColor(prm)
 
-    write.table(out_nodedt, prm$fout_node, quote=F, sep="\t", row.names=F)
-    write.table(out_edgedt, prm$fout_edge, quote=F, sep="\t", row.names=F)
     file.copy(prm$fmed, prm$fout_med)
+    write.table(out_nodedt, prm$fout_node,  quote=F, sep="\t", row.names=F)
+    write.table(out_edgedt, prm$fout_edge,  quote=F, sep="\t", row.names=F)
+    write.table(colordt,    prm$fout_color, quote=F, sep="\t", row.names=F)
 
-    cat('file written:', prm$fout_node, "\n")
-    cat('file written:', prm$fout_edge, "\n")
-    cat('file written:', prm$fout_med , "\n")
+    cat('file written:', prm$fout_med ,  "\n")
+    cat('file written:', prm$fout_node,  "\n")
+    cat('file written:', prm$fout_edge,  "\n")
+    cat('file written:', prm$fout_color, "\n")
 
 
     deployApp( appDir  = './', 
                appName = 'HNSC_pathway', 
                account = 'uwbiostat')
+}
+
+
+defColor <- function(prm) {
+    dt = data.table(
+        color = c( 
+            paste0('<font color="', prm$red,  '"><strong>red</strong></font>'),
+            paste0('<font color="', prm$blue, '"><strong>blue</strong></font>'),
+            paste0('<font color="', prm$orange, 
+                   '"><strong>orange</strong></font>'),
+            paste0('<font color="', prm$greys[4], 
+                   '"><strong>grey</strong></font>' )),
+
+        `correlated with overall survival (p < 0.05)` = c(
+            'both pathway level and genomic data',
+            'only pathway level',
+            'only genomic data',
+            'none' ) )
+
+    return(dt)
 }
 
 
@@ -74,8 +100,13 @@ selDefNode <- function(in_nodedt, mrgmrgdt, prm) {
     nodedt = merge(mrgmrgdt, uni_nodedt, by=c('pid', 'entity'), all=T)
     setnames(nodedt, 'entity', 'id')
 
-    nodedt[, `:=`( mut_frc  = n_mut/n_patient,
-                   prtb_frc = n_prtb/n_patient)]
+    nodedt[, `:=`( 
+        mut_frc  = n_mut/n_patient,
+        prtb_frc = n_prtb/n_patient, 
+        ipl_os  = ifelse( (! is.na(p_ipl)) & (p_ipl < 0.05), TRUE, FALSE),
+        omic_os = ifelse( ( (! is.na(p_cna)) & (p_cna < 0.05) ) |
+                          ( (! is.na(p_rna)) & (p_rna < 0.05) ), TRUE, FALSE)
+    )]
 
     nodedt[, `:=`(
         s_omic = ifelse(has_omic == FALSE, '<li>no mutation/CNA/RNA data</li>',
@@ -88,11 +119,10 @@ selDefNode <- function(in_nodedt, mrgmrgdt, prm) {
                        ifelse(prtb_frc > 0, 'triangle', 'dot')),
         size  = ifelse(prtb_frc > 0.5, 35, ifelse(prtb_frc > 0, 20, 15)),
         color = ifelse(prtb_frc > 0,
-                       ifelse((! is.na(p_ipl)) & (p_ipl < 0.05),
-                              ifelse(((! is.na(p_cna)) & (p_cna < 0.05) ) |
-                                     ((! is.na(p_rna)) & (p_rna < 0.05) ),
-                                     prm$red, prm$blue), prm$greys[2]), 
-                       prm$greys[2])
+                       ifelse(ipl_os == TRUE, 
+                              ifelse(omic_os == TRUE, prm$red, prm$blue), 
+                              ifelse(omic_os == TRUE, prm$orange, prm$greys[3])
+                       ), prm$greys[3])
     )]
 
     nodedt[, `:=`(
