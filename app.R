@@ -43,7 +43,7 @@ ui <- fluidPage(
 
     fluidRow(
         column(width = 3, 
-               plotlyOutput('pointPlot', width='300px', height='300px'),
+               plotlyOutput('pointPlot', width='260px', height='260px'),
                br(),
                selectizeInput(  inputId  = 'pathway', 
                                 label    = 'select/enter a pathway name below:',
@@ -116,7 +116,13 @@ server <- function(input, output, session) {
                 '> 50%', '&#8804; 50%', 'none' ))
     }, align='c', sanitize.text.function = function(x) x)
 
-    output$disclaimer = renderText({'<font size="2px">This app is an ongoing work supported in part by a Wisconsin Head and Neck Cancer SPORE Career Enhancement Award to Anthony Gitter in collaboration with Paul Ahlquist, David Page, Irene Ong, and Peng Liu</font>'})
+    output$disclaimer = renderText({
+        paste0('<font size="2px">',
+               'This app is an ongoing work supported in part by <a href="https://hn-spore.wisc.edu/cep/awarded-pilots/#gitter">a Wisconsin Head and Neck Cancer SPORE Career Enhancement Award</a> to Anthony Gitter in collaboration with Paul Ahlquist, David Page, Irene Ong, and Peng Liu.',
+               '<br><br>',
+               'For question or feature request, please create an issue at this app\'s <a href="https://github.com/pliu55/appHNSCPathway/issues">GitHub page</a>.',
+               '</font>')
+    })
 }
 
 
