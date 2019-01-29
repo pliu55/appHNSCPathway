@@ -32,7 +32,6 @@ readDtList <- function(){
                    edge  = edgedt,
                    color = colordt
                  )
-    print(dtlist$color)
 
     return(dtlist)
 }
